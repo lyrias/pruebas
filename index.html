@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cámara en Canvas</title>
+    <title>Predicciones con Modelo Descargado</title>
     <style>
         #cameraCanvas {
             border: 2px solid black;
@@ -13,11 +12,62 @@
         }
     </style>
 </head>
-
 <body>
+    <button id="toggleCameraButton">Cambiar Cámara</button>
     <canvas id="cameraCanvas"></canvas>
-    <button onclick="toggleCamera()">Cambiar Cámara</button>
-    <script src="scripts.js"></script>
-</body>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script>
+        let currentStream;
+        const video = document.createElement('video');
+        const canvas = document.getElementById('cameraCanvas');
+        const toggleCameraButton = document.getElementById('toggleCameraButton');
+        const context = canvas.getContext('2d');
+        let model;
 
+        const startCamera = async (facingMode) => {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
+                currentStream = stream;
+                video.srcObject = stream;
+                video.play();
+            } catch (error) {
+                console.error('Error al acceder a la cámara:', error);
+            }
+        };
+
+        const toggleCamera = () => {
+            const facingMode = (currentStream && currentStream.getVideoTracks()[0].getSettings().facingMode === 'user') ? 'environment' : 'user';
+            startCamera(facingMode);
+        };
+
+        toggleCameraButton.addEventListener('click', toggleCamera);
+
+        async function loadModel() {
+            // Carga tu modelo descargado
+            model = await tf.loadLayersModel('./my_model/model.json');
+        }
+
+        loadModel();
+
+        video.addEventListener('play', () => {
+            const updateCanvas = async () => {
+                if (!video.paused && !video.ended) {
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    // Realiza la predicción con tu modelo
+                    const tensor = tf.browser.fromPixels(canvas);
+                    const expandedTensor = tensor.expandDims();
+                    const predictions = model.predict(expandedTensor);
+                    console.log(predictions.dataSync());
+                    tensor.dispose();
+                    requestAnimationFrame(updateCanvas);
+                }
+            };
+            updateCanvas();
+        });
+    </script>
+</body>
 </html>
