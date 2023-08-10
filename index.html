@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seleccionar Cámara Web</title>
+    <title>Ver Cámara Web Seleccionada</title>
 </head>
 <body>
     <select id="cameraDropdown"></select>
@@ -11,6 +11,7 @@
     <script>
         const cameraDropdown = document.getElementById('cameraDropdown');
         const cameraVideo = document.getElementById('cameraVideo');
+        let currentStream;
 
         async function populateCameraDropdown() {
             try {
@@ -37,7 +38,12 @@
             const constraints = { video: { deviceId: { exact: cameraDevices[selectedDeviceIndex].deviceId } } };
 
             try {
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+                
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                currentStream = stream;
                 cameraVideo.srcObject = stream;
             } catch (error) {
                 console.error('Error al acceder a la cámara:', error);
