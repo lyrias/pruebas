@@ -11,6 +11,7 @@
             margin: auto;
         }
     </style>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 </head>
 <body>
     <button id="toggleCameraButton">Cambiar Cámara</button>
@@ -47,8 +48,12 @@
         toggleCameraButton.addEventListener('click', toggleCamera);
 
         async function loadModel() {
-            // Carga tu modelo descargado
-            model = await tf.loadLayersModel('./my_model/model.json');
+            // Carga el modelo y los metadatos
+            model = await tf.loadLayersModel('modelo/model.json');
+            const metadata = await fetch('modelo/metadata.json');
+            const metadataJSON = await metadata.json();
+            // Puedes utilizar los metadatos para obtener información sobre el modelo
+            console.log(metadataJSON);
         }
 
         loadModel();
