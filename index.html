@@ -3,76 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Predicciones con Modelo Descargado</title>
-    <style>
-        #cameraCanvas {
-            border: 2px solid black;
-            display: block;
-            margin: auto;
-        }
-    </style>
-        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <title>Detección de Cámaras Web</title>
 </head>
 <body>
-    <button id="toggleCameraButton">Cambiar Cámara</button>
-    <canvas id="cameraCanvas"></canvas>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <p id="cameraCount">Número de cámaras web: Calculando...</p>
     <script>
-        let currentStream;
-        const video = document.createElement('video');
-        const canvas = document.getElementById('cameraCanvas');
-        const toggleCameraButton = document.getElementById('toggleCameraButton');
-        const context = canvas.getContext('2d');
-        let model;
-
-        const startCamera = async (facingMode) => {
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-            }
-
+        async function countCameras() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
-                currentStream = stream;
-                video.srcObject = stream;
-                video.play();
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const cameraDevices = devices.filter(device => device.kind === 'videoinput');
+                document.getElementById('cameraCount').textContent = `Número de cámaras web: ${cameraDevices.length}`;
             } catch (error) {
-                console.error('Error al acceder a la cámara:', error);
+                console.error('Error al enumerar los dispositivos:', error);
+                document.getElementById('cameraCount').textContent = 'Error al obtener la información de la cámara';
             }
-        };
-
-        const toggleCamera = () => {
-            const facingMode = (currentStream && currentStream.getVideoTracks()[0].getSettings().facingMode === 'user') ? 'environment' : 'user';
-            startCamera(facingMode);
-        };
-
-        toggleCameraButton.addEventListener('click', toggleCamera);
-
-        async function loadModel() {
-            // Carga el modelo y los metadatos
-            model = await tf.loadLayersModel('modelo/model.json');
-            const metadata = await fetch('modelo/metadata.json');
-            const metadataJSON = await metadata.json();
-            // Puedes utilizar los metadatos para obtener información sobre el modelo
-            console.log(metadataJSON);
         }
 
-        loadModel();
-
-        video.addEventListener('play', () => {
-            const updateCanvas = async () => {
-                if (!video.paused && !video.ended) {
-                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    // Realiza la predicción con tu modelo
-                    const tensor = tf.browser.fromPixels(canvas);
-                    const expandedTensor = tensor.expandDims();
-                    const predictions = model.predict(expandedTensor);
-                    console.log(predictions.dataSync());
-                    tensor.dispose();
-                    requestAnimationFrame(updateCanvas);
-                }
-            };
-            updateCanvas();
-        });
+        countCameras();
     </script>
 </body>
 </html>
