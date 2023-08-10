@@ -3,23 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detección de Cámaras Web</title>
+    <title>Seleccionar Cámara Web</title>
 </head>
 <body>
-    <p id="cameraCount">Número de cámaras web: Calculando...</p>
+    <select id="cameraDropdown"></select>
+    <video id="cameraVideo" autoplay playsinline></video>
     <script>
-        async function countCameras() {
+        const cameraDropdown = document.getElementById('cameraDropdown');
+        const cameraVideo = document.getElementById('cameraVideo');
+
+        async function populateCameraDropdown() {
             try {
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 const cameraDevices = devices.filter(device => device.kind === 'videoinput');
-                document.getElementById('cameraCount').textContent = `Número de cámaras web: ${cameraDevices.length}`;
+                
+                cameraDevices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.text = device.label || `Cámara ${index + 1}`;
+                    cameraDropdown.appendChild(option);
+                });
+
+                cameraDropdown.addEventListener('change', startSelectedCamera);
             } catch (error) {
                 console.error('Error al enumerar los dispositivos:', error);
-                document.getElementById('cameraCount').textContent = 'Error al obtener la información de la cámara';
+                cameraDropdown.disabled = true;
+                cameraDropdown.innerHTML = 'Error al obtener la información de la cámara';
             }
         }
 
-        countCameras();
+        async function startSelectedCamera() {
+            const selectedDeviceIndex = cameraDropdown.value;
+            const constraints = { video: { deviceId: { exact: cameraDevices[selectedDeviceIndex].deviceId } } };
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                cameraVideo.srcObject = stream;
+            } catch (error) {
+                console.error('Error al acceder a la cámara:', error);
+            }
+        }
+
+        populateCameraDropdown();
     </script>
 </body>
 </html>
